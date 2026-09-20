@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AK Ludo Game</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #121212;
+            overflow: hidden;
+        }
+
+        .app-frame {
+            width: 100vw;
+            max-width: 420px;
+            height: 100vh;
+            max-height: 860px;
+            background: #1e1e2e;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            padding: 15px 0;
+        }
+
+        @media (min-width: 450px) {
+            .app-frame {
+                border-radius: 30px;
+                height: 92vh;
+                border: 6px solid #2d2d44;
+            }
+        }
+
+        /* Music Toggle Button (Top Right Corner) */
+        .sound-btn {
+            position: absolute;
+            top: 12px;
+            right: 165px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            color: white;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1001;
+            transition: background 0.2s;
+        }
+
+        .sound-btn:active { transform: scale(0.9); }
+
+        /* Menu Selection Screen */
+        .menu-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #181824;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        .menu-title {
+            color: #fff;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .menu-btn {
+            width: 75%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            background: #ff4757;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .menu-btn:active { transform: scale(0.95); }
+        .btn-green { background: #2ed573; }
+
+        /* Main Game Screen */
+        .game-screen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 10px;
+        }
+
+        .player-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 15px;
+        }
+
+        .player-card {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+            color: white;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .player-card.active {
+            border: 2px solid #ffd700;
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .player-card.hidden-card { opacity: 0; pointer-events: none; }
+
+        .avatar {
+            width: 28px; height: 28px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; color: white;
+        }
+        .p-red { background: #ff4757; }
+        .p-green { background: #2ed573; }
+        .p-blue { background: #1e90ff; }
+        .p-yellow { background: #ffa502; }
+
+        /* Board Container */
+        .board-container {
+            width: 95vw;
+            max-width: 370px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .dice-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 5px;
+            height: 52px;
+        }
+
+        .dice-slot {
+            width: 52px;
+            height: 52px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px dashed rgba(255, 255, 255, 0.25);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Dice Component */
+        .dice-box {
+            width: 48px;
+            height: 48px;
+            background: #ffffff;
+            border-radius: 10px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            padding: 5px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            cursor: pointer;
+            z-index: 20;
+        }
+
+        .dice-dot {
+            background-color: #222;
+            border-radius: 50%;
+            width: 8px;
+            height: 8px;
+            margin: auto;
+            visibility: hidden;
+        }
+
+        .dice-rolling {
+            animation: roll 0.4s ease-in-out;
+        }
+
+        @keyframes roll {
+            0% { transform: rotate(0deg) scale(0.8); }
+            50% { transform: rotate(180deg) scale(1.1); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        /* Ludo Board Wrapper */
+        .ludo-board {
+            width: 100%;
+            height: 95vw;
+            max-height: 370px;
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            grid-template-rows: repeat(15, 1fr);
+            border: 3px solid #1a1a1a;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            background-color: #fff;
+        }
+
+        .board-svg-bg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Pawns (Gotiyan) */
+        .pawn {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+            cursor: pointer;
+            position: absolute;
+            transition: transform 0.15s ease-in-out, top 0.15s ease, left 0.15s ease;
+            will-change: transform, top, left;
+            z-index: 10;
+        }
+
+        .pawn-moving { z-index: 1000 !important; }
+
+        .pawn-red { background: radial-gradient(circle, #ff6b81, #ff4757); }
+        .pawn-green { background: radial-gradient(circle, #7bed9f, #2ed573); }
+        .pawn-blue { background: radial-gradient(circle, #70a1ff, #1e90ff); }
+        .pawn-yellow { background: radial-gradient(circle, #ffeaa7, #ffa502); }
+
+        .pawn.highlight {
+            animation: bounce 0.4s infinite alternate;
+        }
+
+        @keyframes bounce {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.3); box-shadow: 0 0 12px #ffffff; }
+        }
+
+        .status-bar {
+            width: 90%;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 8px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 13px;
+        }
+/* Modal Popup Style */
+.game-over-modal {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    color: #fff;
+}
+
+.winner-card {
+    background: #2d2d44;
+    padding: 25px;
+    border-radius: 15px;
+    width: 80%;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+}
+
+.winner-card h2 {
+    color: #ffd700;
+    font-size: 26px;
+    margin-bottom: 15px;
+}
+
+.winner-list {
+    margin: 15px 0;
+    font-size: 16px;
+    line-height: 2;
+    text-align: left;
+}
+
+.restart-btn {
+    margin-top: 15px;
+    padding: 10px 20px;
+    background: #ff4757;
+    border: none;
+    color: white;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+}
+/* Back Button Style (Top Left) */
+.back-btn {
+    position: absolute;
+    top: 0px;
+    left: 105px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 18px;
+    padding: 6px 14px;
+    color: white;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1001;
+    transition: background 0.2s;
+}
+.back-btn:active { transform: scale(0.9); }
+
+/* Mobile Back Press Toast Message */
+.toast-msg {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 12px;
+    z-index: 3000;
+    pointer-events: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    display: none;
+}
+
+
+    </style>
+</head>
+<body>
+
+    <div class="app-frame">
+        <button class="sound-btn" id="bg-sound-toggle" onclick="toggleBGMusic()">🎵</button>
+<!-- Back Button (Top Left Corner) -->
+<button class="back-btn" id="back-btn" onclick="goBackDirectly()">⬅ Back</button>
+
+
+        <!-- MENU -->
+        <div class="menu-screen" id="menu-screen">
+            <div class="menu-title">LUDO GAME</div>
+            <button class="menu-btn" onclick="startGame(2)">2 PLAYERS (RED vs YELLOW)</button>
+            <button class="menu-btn btn-green" onclick="startGame(4)">4 PLAYERS MODE</button>
+        </div>
+
+        <!-- MAIN GAME SCREEN -->
+        <div class="game-screen" id="game-screen">
+            <div class="player-row">
+                <div class="player-card" id="card-red">
+                    <div class="avatar p-red">P1</div>
+                    <div>Red</div>
+                </div>
+                <div class="player-card" id="card-green">
+                    <div>Green</div>
+                    <div class="avatar p-green">P2</div>
+                </div>
+            </div>
+
+            <div class="board-container">
+                <div class="dice-row">
+                    <div class="dice-slot" id="slot-red"></div>
+                    <div class="dice-slot" id="slot-green"></div>
+                </div>
+
+                <div class="ludo-board" id="board">
+                    <svg class="board-svg-bg" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="60" height="60" fill="#ff4757"/>
+                        <rect x="10" y="10" width="40" height="40" fill="#ffffff" rx="6"/>
+                        <circle cx="22" cy="22" r="5" fill="#ff4757"/>
+                        <circle cx="38" cy="22" r="5" fill="#ff4757"/>
+                        <circle cx="22" cy="38" r="5" fill="#ff4757"/>
+                        <circle cx="38" cy="38" r="5" fill="#ff4757"/>
+
+                        <rect x="90" y="0" width="60" height="60" fill="#2ed573"/>
+                        <rect x="100" y="10" width="40" height="40" fill="#ffffff" rx="6"/>
+                        <circle cx="112" cy="22" r="5" fill="#2ed573"/>
+                        <circle cx="128" cy="22" r="5" fill="#2ed573"/>
+                        <circle cx="112" cy="38" r="5" fill="#2ed573"/>
+                        <circle cx="128" cy="38" r="5" fill="#2ed573"/>
+
+                        <rect x="0" y="90" width="60" height="60" fill="#1e90ff"/>
+                        <rect x="10" y="100" width="40" height="40" fill="#ffffff" rx="6"/>
+                        <circle cx="22" cy="112" r="5" fill="#1e90ff"/>
+                        <circle cx="38" cy="112" r="5" fill="#1e90ff"/>
+                        <circle cx="22" cy="128" r="5" fill="#1e90ff"/>
+                        <circle cx="38" cy="128" r="5" fill="#1e90ff"/>
+
+                        <rect x="90" y="90" width="60" height="60" fill="#ffa502"/>
+                        <rect x="100" y="100" width="40" height="40" fill="#ffffff" rx="6"/>
+                        <circle cx="112" cy="112" r="5" fill="#ffa502"/>
+                        <circle cx="128" cy="112" r="5" fill="#ffa502"/>
+                        <circle cx="112" cy="128" r="5" fill="#ffa502"/>
+                        <circle cx="128" cy="128" r="5" fill="#ffa502"/>
+
+                        <polygon points="60,60 90,60 75,75" fill="#2ed573"/>
+                        <polygon points="90,60 90,90 75,75" fill="#ffa502"/>
+                        <polygon points="60,90 90,90 75,75" fill="#1e90ff"/>
+                        <polygon points="60,60 60,90 75,75" fill="#ff4757"/>
+
+                        <rect x="10" y="70" width="50" height="10" fill="#ff4757"/>
+                        <rect x="10" y="60" width="10" height="10" fill="#ff4757"/>
+
+                        <rect x="70" y="10" width="10" height="50" fill="#2ed573"/>
+                        <rect x="80" y="10" width="10" height="10" fill="#2ed573"/>
+
+                        <rect x="90" y="70" width="50" height="10" fill="#ffa502"/>
+                        <rect x="130" y="80" width="10" height="10" fill="#ffa502"/>
+
+                        <rect x="70" y="90" width="10" height="50" fill="#1e90ff"/>
+                        <rect x="60" y="130" width="10" height="10" fill="#1e90ff"/>
+
+                        <!-- ONLY TRACK BOXES BLACK BORDERS -->
+<!-- EXACT BLACK TRACK BOXES AND LINES -->
+<!-- Vertical Tracks Horizontal Grid Lines -->
+<path d="M 60,10 H 90 M 60,20 H 90 M 60,30 H 90 M 60,40 H 90 M 60,50 H 90
+         M 60,100 H 90 M 60,110 H 90 M 60,120 H 90 M 60,130 H 90 M 60,140 H 90" 
+      stroke="#000000" stroke-width="0.4" fill="none"/>
+
+<!-- Horizontal Tracks Vertical Grid Lines -->
+<path d="M 10,60 V 90 M 20,60 V 90 M 30,60 V 90 M 40,60 V 90 M 50,60 V 90
+         M 100,60 V 90 M 110,60 V 90 M 120,60 V 90 M 130,60 V 90 M 140,60 V 90" 
+      stroke="#000000" stroke-width="0.4" fill="none"/>
+
+<!-- Center Dividers for 3 Columns/Rows -->
+<path d="M 70,0 V 60 M 80,0 V 60
+         M 70,90 V 150 M 80,90 V 150
+         M 0,70 H 60 M 0,80 H 60
+         M 90,70 H 150 M 90,80 H 150" 
+      stroke="#000000" stroke-width="0.4" fill="none"/>
+
+<!-- Track Outer Black Borders -->
+<rect x="60" y="0" width="30" height="60" fill="none" stroke="#000000" stroke-width="0.5"/>
+<rect x="60" y="90" width="30" height="60" fill="none" stroke="#000000" stroke-width="0.5"/>
+<rect x="0" y="60" width="60" height="30" fill="none" stroke="#000000" stroke-width="0.5"/>
+<rect x="90" y="60" width="60" height="30" fill="none" stroke="#000000" stroke-width="0.5"/>
+
+
+
+
+<rect x="60" y="0" width="30" height="60" fill="none" stroke="#000000" stroke-width="0.5"/>
+<rect x="60" y="90" width="30" height="60" fill="none" stroke="#000000" stroke-width="0.5"/>
+<rect x="0" y="60" width="60" height="30" fill="none" stroke="#000000" stroke-width="0.5"/>
+<rect x="90" y="60" width="60" height="30" fill="none" stroke="#000000" stroke-width="0.5"/>
+
+<!-- 100% ACCURATE 8 STAR STOPPAGES -->
+<!-- Red Stoppages -->
+<text x="15" y="65" font-size="7" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="#000000">★</text>
+<text x="65" y="25" font-size="7" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="#000000">★</text>
+
+<!-- Green Stoppages -->
+<text x="85" y="15" font-size="7" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="#000000">★</text>
+<text x="125" y="65" font-size="7" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="#000000">★</text>
+
+<!-- Yellow Stoppages -->
+<text x="135" y="85" font-size="7" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="#000000">★</text>
+<text x="85" y="125" font-size="7" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="#000000">★</text>
+
+<!-- Blue Stoppages -->
+<text x="65" y="135" font-size="7" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="#000000">★</text>
+<text x="25" y="85" font-size="7" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="#000000">★</text>
+
+                    </svg>
+                </div>
+
+                <div class="dice-row">
+                    <div class="dice-slot" id="slot-blue"></div>
+                    <div class="dice-slot" id="slot-yellow"></div>
+                </div>
+            </div>
+
+            <div class="player-row">
+                <div class="player-card" id="card-blue">
+                    <div class="avatar p-blue">P3</div>
+                    <div>Blue</div>
+                </div>
+                <div class="player-card" id="card-yellow">
+                    <div>Yellow</div>
+                    <div class="avatar p-yellow">P4</div>
+                </div>
+            </div>
+
+            <div class="status-bar" id="status-text">मोड चुनें और खेल शुरू करें।</div>
+        </div>
+    </div>
+
+    <!-- Dice Box -->
+    <div class="dice-box" id="dice-box" style="display: none;">
+        <div class="dice-dot" id="dot-1"></div>
+        <div class="dice-dot" id="dot-2"></div>
+        <div class="dice-dot" id="dot-3"></div>
+        <div class="dice-dot" id="dot-4"></div>
+        <div class="dice-dot" id="dot-5"></div>
+        <div class="dice-dot" id="dot-6"></div>
+        <div class="dice-dot" id="dot-7"></div>
+        <div class="dice-dot" id="dot-8"></div>
+        <div class="dice-dot" id="dot-9"></div>
+    </div>
+
+    <script>
+        /* --- ADVANCED REALISTIC AUDIO SYNTHESIZER --- */
+let audioCtx = null;
+let isBgMusicMuted = false;
+let bgInterval = null;
+
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+}
+
+function playDiceRollSound() {
+    initAudio();
+    if (!audioCtx) return;
+    for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300 + Math.random() * 400, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.10, audioCtx.currentTime + 0.04);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.04);
+        }, i * 60);
+    }
+    setTimeout(() => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.08);
+    }, 320);
+}
+
+function playPawnStepSound() {
+    initAudio();
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.05);
+    gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.05);
+}
+
+function playKillSound() {
+    initAudio();
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.2);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.2);
+}
+
+function startBgMusic() {
+    initAudio();
+    if (bgInterval) return;
+    const notes = [523.25, 659.25, 783.99, 659.25, 523.25, 587.33];
+    let noteIdx = 0;
+    bgInterval = setInterval(() => {
+        if (isBgMusicMuted || !audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(notes[noteIdx], audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.18);
+        noteIdx = (noteIdx + 1) % notes.length;
+    }, 350);
+}
+
+function toggleBGMusic() {
+    isBgMusicMuted = !isBgMusicMuted;
+    document.getElementById('bg-sound-toggle').innerText = isBgMusicMuted ? '🔇' : '🔊';
+}
+
+/* --- LUDO GAME ENGINE --- */
+const commonPath = [
+    [2,7], [3,7], [4,7], [5,7], [6,7],
+    [7,6], [7,5], [7,4], [7,3], [7,2], [7,1],
+    [8,1], [9,1],
+    [9,2], [9,3], [9,4], [9,5], [9,6],
+    [10,7], [11,7], [12,7], [13,7], [14,7], [15,7],
+    [15,8], [15,9],
+    [14,9], [13,9], [12,9], [11,9], [10,9],
+    [9,10], [9,11], [9,12], [9,13], [9,14], [9,15],
+    [8,15], [7,15],
+    [7,14], [7,13], [7,12], [7,11], [7,10],
+    [6,9], [5,9], [4,9], [3,9], [2,9], [1,9],
+    [1,8], [1,7]
+];
+
+const homePaths = {
+    red: [[2,8], [3,8], [4,8], [5,8], [6,8], [7,8]],
+    green: [[8,2], [8,3], [8,4], [8,5], [8,6], [8,7]],
+    yellow: [[14,8], [13,8], [12,8], [11,8], [10,8], [9,8]],
+    blue: [[8,14], [8,13], [8,12], [8,11], [8,10], [8,9]]
+};
+
+const baseCoords = {
+    red: [[3,3], [5,3], [3,5], [5,5]],
+    green: [[11,3], [13,3], [11,5], [13,5]],
+    yellow: [[11,11], [13,11], [11,13], [13,13]],
+    blue: [[3,11], [5,11], [3,13], [5,13]]
+};
+
+const safePathIndices = [0, 8, 13, 21, 26, 34, 39, 47];
+
+const players = {
+    red: { startPos: 0, pawns: [-1,-1,-1,-1] },
+    green: { startPos: 13, pawns: [-1,-1,-1,-1] },
+    yellow: { startPos: 26, pawns: [-1,-1,-1,-1] },
+    blue: { startPos: 39, pawns: [-1,-1,-1,-1] }
+};
+
+const diceDotPatterns = {
+    1: [5], 2: [1, 9], 3: [1, 5, 9],
+    4: [1, 3, 7, 9], 5: [1, 3, 5, 7, 9], 6: [1, 3, 4, 6, 7, 9]
+};
+
+let playerOrder = ['red', 'yellow'];
+let turnIndex = 0;
+let diceValue = 0;
+let hasRolled = false;
+let isRolling = false;
+let isMoving = false;
+let winnersRank = []; // विजेताओं का क्रम स्टोर करने के लिए
+
+const diceBox = document.getElementById('dice-box');
+
+function buildGrid() {
+    const boardEl = document.getElementById('board');
+    for (let r = 1; r <= 15; r++) {
+        for (let c = 1; c <= 15; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.id = `cell-${c}-${r}`;
+            cell.style.gridColumn = c;
+            cell.style.gridRow = r;
+            boardEl.appendChild(cell);
+        }
+    }
+}
+
+function startGame(mode) {
+    startBgMusic();
+    document.getElementById('menu-screen').style.display = 'none';
+    winnersRank = [];
+    if (mode === 2) {
+        playerOrder = ['red', 'yellow'];
+        document.getElementById('card-green').classList.add('hidden-card');
+        document.getElementById('card-blue').classList.add('hidden-card');
+    } else {
+        playerOrder = ['red', 'green', 'yellow', 'blue'];
+    }
+    initPawns();
+    updateTurnUI();
+}
+
+function initPawns() {
+    playerOrder.forEach(p => {
+        for (let i = 0; i < 4; i++) {
+            const pawn = document.createElement('div');
+            pawn.className = `pawn pawn-${p}`;
+            pawn.id = `pawn-${p}-${i}`;
+            pawn.onclick = (e) => { e.stopPropagation(); onPawnClick(p, i); };
+            
+            document.getElementById('board').appendChild(pawn);
+            renderPawnAtStep(p, i, -1);
+        }
+    });
+}
+
+function setDiceDots(val) {
+    for (let i = 1; i <= 9; i++) document.getElementById(`dot-${i}`).style.visibility = 'hidden';
+    if (diceDotPatterns[val]) {
+        diceDotPatterns[val].forEach(id => document.getElementById(`dot-${id}`).style.visibility = 'visible');
+    }
+}
+
+// यह जांचने के लिए कि क्या खिलाड़ी की सभी 4 गोटियां पक चुकी हैं (Home)
+function hasPlayerFinished(p) {
+    return players[p].pawns.every(pos => pos === 56);
+}
+
+diceBox.onclick = function() {
+    if (hasRolled || isRolling || isMoving) return;
+    
+    playDiceRollSound();
+    
+    isRolling = true;
+    diceBox.classList.add('dice-rolling');
+
+    let timer = setInterval(() => {
+        setDiceDots(Math.floor(Math.random() * 6) + 1);
+    }, 50);
+
+    setTimeout(() => {
+        clearInterval(timer);
+        diceBox.classList.remove('dice-rolling');
+        diceValue = Math.floor(Math.random() * 6) + 1;
+        setDiceDots(diceValue);
+        hasRolled = true;
+        isRolling = false;
+
+        processMove();
+    }, 400);
+};
+
+function processMove() {
+    const curPlayer = playerOrder[turnIndex];
+    let validPawns = [];
+
+    players[curPlayer].pawns.forEach((pos, idx) => {
+        if ((pos === -1 && diceValue === 6) || (pos >= 0 && pos + diceValue <= 56)) {
+            validPawns.push(idx);
+        }
+    });
+
+    if (validPawns.length === 0) {
+        document.getElementById('status-text').innerText = `${curPlayer.toUpperCase()} ने ${diceValue} लाया! कोई चाल नहीं।`;
+        setTimeout(nextTurn, 1000);
+    } else if (validPawns.length === 1) {
+        setTimeout(() => onPawnClick(curPlayer, validPawns[0]), 300);
+    } else {
+        document.getElementById('status-text').innerText = `${curPlayer.toUpperCase()} ने ${diceValue} लाया! अपनी गोटी चुनें।`;
+        validPawns.forEach(i => document.getElementById(`pawn-${curPlayer}-${i}`).classList.add('highlight'));
+    }
+}
+
+function onPawnClick(player, index) {
+    const curPlayer = playerOrder[turnIndex];
+    if (player !== curPlayer || !hasRolled || isRolling || isMoving) return;
+
+    let pos = players[player].pawns[index];
+
+    if (pos === -1 && diceValue === 6) {
+        playPawnStepSound();
+        players[player].pawns[index] = 0;
+        renderPawnAtStep(player, index, 0);
+        rearrangePawnsOnBoard();
+        finishTurn(true);
+    } else if (pos >= 0 && pos + diceValue <= 56) {
+        document.querySelectorAll('.pawn').forEach(p => p.classList.remove('highlight'));
+        isMoving = true;
+        
+        const pawnEl = document.getElementById(`pawn-${player}-${index}`);
+        pawnEl.classList.add('pawn-moving');
+
+        let targetPos = pos + diceValue;
+        let currentStep = pos;
+
+        let walkInterval = setInterval(() => {
+            currentStep++;
+            playPawnStepSound();
+            players[player].pawns[index] = currentStep;
+            renderPawnAtStep(player, index, currentStep);
+
+            if (currentStep >= targetPos) {
+                clearInterval(walkInterval);
+                pawnEl.classList.remove('pawn-moving');
+                isMoving = false;
+                rearrangePawnsOnBoard();
+                
+                let pawnReachedHome = (targetPos === 56);
+                
+                // जांचें कि क्या खिलाड़ी की सभी गोटियां पक गईं (Won)
+                if (hasPlayerFinished(player) && !winnersRank.includes(player)) {
+                    winnersRank.push(player);
+                }
+
+                let killed = checkKill(player, targetPos);
+                
+                // अतिरिक्त चांस लॉजिक: यदि 6 आया हो, गोटी काटी हो या एक गोटी पकी (Home पहुंची) हो
+                let getExtraChance = (diceValue === 6 || killed || pawnReachedHome);
+                
+                // यदि खिलाड़ी पूरा गेम जीत चुका है, तो उसे अतिरिक्त मौका नहीं मिलेगा
+                if (hasPlayerFinished(player)) {
+                    getExtraChance = false;
+                }
+
+                finishTurn(getExtraChance);
+            }
+        }, 180);
+    }
+}
+
+function checkKill(currentPlayer, step) {
+    if (step >= 51) return false;
+    let pathIdx = (players[currentPlayer].startPos + step) % 52;
+    
+    if (safePathIndices.includes(pathIdx)) return false;
+
+    let killed = false;
+    playerOrder.forEach(p => {
+        if (p !== currentPlayer) {
+            players[p].pawns.forEach((otherStep, i) => {
+                if (otherStep >= 0 && otherStep < 51) {
+                    let otherPathIdx = (players[p].startPos + otherStep) % 52;
+                    if (pathIdx === otherPathIdx) {
+                        playKillSound();
+                        killed = true;
+                        document.getElementById('status-text').innerText = `💥 ${currentPlayer.toUpperCase()} ने ${p.toUpperCase()} की गोटी काट दी!`;
+                        
+                        let returnStep = otherStep;
+                        let returnInterval = setInterval(() => {
+                            returnStep -= 2; 
+                            if (returnStep < -1) returnStep = -1;
+
+                            players[p].pawns[i] = returnStep;
+                            renderPawnAtStep(p, i, returnStep);
+
+                            if (returnStep <= -1) {
+                                clearInterval(returnInterval);
+                                rearrangePawnsOnBoard();
+                            }
+                        }, 30);
+                    }
+                }
+            });
+        }
+    });
+    if (killed) rearrangePawnsOnBoard();
+    return killed;
+}
+
+function getCellCoordinates(player, index, pos) {
+    if (pos === -1) {
+        return baseCoords[player][index];
+    } else if (pos < 51) {
+        let pathIdx = (players[player].startPos + pos) % 52;
+        return commonPath[pathIdx];
+    } else {
+        let homeIdx = pos - 51;
+        return homePaths[player][homeIdx];
+    }
+}
+
+function renderPawnAtStep(player, index, pos) {
+    const pawnEl = document.getElementById(`pawn-${player}-${index}`);
+    let coords = getCellCoordinates(player, index, pos);
+    let cell = document.getElementById(`cell-${coords[0]}-${coords[1]}`);
+
+    if (cell) {
+        let rect = cell.getBoundingClientRect();
+        let boardRect = document.getElementById('board').getBoundingClientRect();
+
+        let left = rect.left - boardRect.left + (rect.width - 20) / 2;
+        let top = rect.top - boardRect.top + (rect.height - 20) / 2;
+
+        pawnEl.style.left = `${left}px`;
+        pawnEl.style.top = `${top}px`;
+    }
+}
+
+function rearrangePawnsOnBoard() {
+    let occupiedCells = {};
+
+    playerOrder.forEach(p => {
+        players[p].pawns.forEach((pos, i) => {
+            if (pos >= 0) {
+                let coords = getCellCoordinates(p, i, pos);
+                let key = `${coords[0]}-${coords[1]}`;
+                if (!occupiedCells[key]) occupiedCells[key] = [];
+                occupiedCells[key].push({ player: p, index: i });
+            }
+        });
+    });
+
+    for (let key in occupiedCells) {
+        let list = occupiedCells[key];
+        if (list.length > 1) {
+            list.forEach((item, stackIdx) => {
+                let pawnEl = document.getElementById(`pawn-${item.player}-${item.index}`);
+                let coords = key.split('-');
+                let cell = document.getElementById(`cell-${coords[0]}-${coords[1]}`);
+                let rect = cell.getBoundingClientRect();
+                let boardRect = document.getElementById('board').getBoundingClientRect();
+
+                let offset = stackIdx * 4; 
+                let left = (rect.left - boardRect.left + (rect.width - 20) / 2) + offset;
+                let top = (rect.top - boardRect.top + (rect.height - 20) / 2) - offset;
+
+                pawnEl.style.left = `${left}px`;
+                pawnEl.style.top = `${top}px`;
+                pawnEl.style.zIndex = 10 + stackIdx;
+            });
+        }
+    }
+}
+
+function finishTurn(extraChance) {
+    // जांचें कि क्या गेम समाप्त होना चाहिए
+    let maxWinnersNeeded = (playerOrder.length === 2) ? 1 : 3;
+    if (winnersRank.length >= maxWinnersNeeded) {
+        showGameOverModal();
+        return;
+    }
+
+    if (extraChance) {
+        hasRolled = false;
+        document.getElementById('status-text').innerText = `अतिरिक्त मौका मिला! फिर से पासा फेंकें।`;
+    } else {
+        nextTurn();
+    }
+}
+
+function nextTurn() {
+    hasRolled = false;
+    
+    // तब तक अगले खिलाड़ी की बारी घुमाते रहें जब तक कि कोई ऐसा खिलाड़ी न मिल जाए जो जीता न हो
+    let safetyCounter = 0;
+    do {
+        turnIndex = (turnIndex + 1) % playerOrder.length;
+        safetyCounter++;
+    } while (hasPlayerFinished(playerOrder[turnIndex]) && safetyCounter < 5);
+
+    // अगर सारे / आवश्यक खिलाड़ी जीत चुके हों
+    let maxWinnersNeeded = (playerOrder.length === 2) ? 1 : 3;
+    if (winnersRank.length >= maxWinnersNeeded) {
+        showGameOverModal();
+        return;
+    }
+
+    updateTurnUI();
+}
+
+function updateTurnUI() {
+    const curPlayer = playerOrder[turnIndex];
+    document.querySelectorAll('.player-card').forEach(c => c.classList.remove('active'));
+    document.getElementById(`card-${curPlayer}`).classList.add('active');
+
+    diceBox.style.display = 'grid';
+    document.getElementById(`slot-${curPlayer}`).appendChild(diceBox);
+    setDiceDots(1);
+    document.getElementById('status-text').innerText = `${curPlayer.toUpperCase()} की बारी! पासा फेंकें।`;
+}
+
+// 3 खिलाड़ियों के जीतने पर Pop-up Modal दिखाने का फ़ंक्शन
+function showGameOverModal() {
+    diceBox.style.display = 'none';
+    document.getElementById('status-text').innerText = "🎮 GAME OVER!";
+
+    let modal = document.createElement('div');
+    modal.className = 'game-over-modal';
+    
+    let winnersHTML = "";
+    winnersRank.forEach((p, index) => {
+        winnersHTML += `<div>🥇 <b>Winner #${index + 1}:</b> <span style="color:${p}; font-weight:bold;">${p.toUpperCase()}</span></div>`;
+    });
+
+    modal.innerHTML = `
+        <div class="winner-card">
+            <h2>🏆 GAME OVER 🏆</h2>
+            <div class="winner-list">
+                ${winnersHTML}
+            </div>
+            <button class="restart-btn" onclick="location.reload()">दोबारा खेलें (Restart)</button>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+buildGrid();
+/* --- BACK BUTTON & NAVIGATION LOGIC --- */
+let lastBackPressTime = 0;
+
+// 1. जब ऊपर दिए गए Back बटन पर क्लिक करेंगे (1 बार में डायरेक्ट होम पेज पर जाएगा)
+function goBackDirectly() {
+    resetToMainMenu();
+}
+
+// गेम को रीसेट करके होम/मेनू स्क्रीन पर वापस भेजने वाला फ़ंक्शन
+function resetToMainMenu() {
+    const modal = document.querySelector('.game-over-modal');
+    if (modal) modal.remove();
+
+    document.getElementById('menu-screen').style.display = 'flex';
+    document.getElementById('dice-box').style.display = 'none';
+    
+    document.getElementById('status-text').innerText = "मोड चुनें और खेल शुरू करें।";
+}
+
+// 2. मोबाइल के भौतिक (Hardware/Gesture) बैक बटन का लॉजिक (2 बार दबाने पर बैक)
+window.addEventListener('popstate', function (event) {
+    const menuScreen = document.getElementById('menu-screen');
+    if (menuScreen && menuScreen.style.display !== 'none') {
+        return; 
+    }
+
+    history.pushState(null, null, location.href);
+
+    const currentTime = new Date().getTime();
+
+    if (currentTime - lastBackPressTime < 2000) {
+        resetToMainMenu();
+    } else {
+        lastBackPressTime = currentTime;
+        showToast("पिछला पेज पर जाने के लिए एक बार फिर बैक करें");
+    }
+});
+
+history.pushState(null, null, location.href);
+
+function showToast(message) {
+    let toast = document.getElementById('toast-msg');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast-msg';
+        toast.className = 'toast-msg';
+        document.querySelector('.app-frame').appendChild(toast);
+    }
+    toast.innerText = message;
+    toast.style.display = 'block';
+
+    setTimeout(() => {
+        toast.style.display = 'none';
+    }, 2000);
+}
+
+
+    </script>
+</body>
+</html>
